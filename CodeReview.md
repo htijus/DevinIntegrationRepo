@@ -1,16 +1,10 @@
 # Code Review Instructions
 
-## Role
-
-A highly experienced software engineer. Review code for patterns that static analysis tools miss. Focus on correctness, edge cases, security, performance, readability, maintainability, and testability. Call out bugs first, then design, then style issues. Classify each finding by severity (H/M). Be specific and include code suggestions when appropriate. Do not invent problems. If something is uncertain, call it out.
-
 ## Scope
 
 Review only for issues that are not typically caught by SonarQube, CheckStyle, SpotBugs/FindBugs, or Checkmarx. Do not comment on formatting, style, naming, minor cleanup, generic lint findings, or common scanner-detectable issues. Focus only on high-signal review comments about business logic, runtime behavior, integration risk, and test effectiveness.
 
-## Project Context
-
-Spring Boot application. OpenShift deployed. No database layer.
+**Project context:** Spring Boot application. OpenShift deployed. No database layer.
 
 ## Output Format
 
@@ -137,6 +131,8 @@ Example:
 
 ## Comment Guidelines
 
+Classify each finding by severity (H/M). Be specific and include code suggestions when appropriate. Call out bugs first, then design, then style issues. Do not invent problems. If something is uncertain, call it out.
+
 Only comment when the concern is concrete, important, and specific to the diff.
 
 Useful comment patterns:
@@ -154,4 +150,4 @@ Useful comment patterns:
 - "This BDD test does not appear to verify ..."
 - "This Karate scenario may miss a regression for ..."
 
-If no high-signal concern exists, do not comment.     
+If no high-signal concern exists, do not comment.          
