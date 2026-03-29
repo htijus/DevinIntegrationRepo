@@ -58,14 +58,14 @@ MongoDB focus:
 - flag aggregation pipelines that perform unbounded `$lookup`, `$unwind`, or `$group` stages without size guards
 
 FreeMarker template focus:
-- flag template changes that may break the rendered output for existing data models or null/missing values
-- flag missing null-safe operators (`!`, `??`, `!''`) that may cause template errors when model values are absent
-- flag `<#assign>` or `<#global>` directives that shadow or overwrite variables from the data model unintentionally
-- flag inline logic or complex expressions in templates that should be computed in the backing Java code instead
-- flag template includes or macros (`<#include>`, `<#macro>`) that reference paths which may not exist in all environments
-- flag unescaped user-supplied values rendered with `${...}` that may introduce XSS or injection risks in HTML output
-- flag changes to shared macros, layouts, or base templates that may silently affect other pages or email templates
-- flag hardcoded text or URLs in templates that should be externalized via message bundles or configuration
+- flag newly added or modified `${...}` expressions that do not use null-safe operators (`!`, `??`, `!''`) — these will throw a runtime error if the model value is absent
+- flag `<#assign>` or `<#global>` directives that use the same variable name as a known data model parameter passed from the Java controller — ask if the shadowing is intentional
+- flag template expressions that contain business rule calculations, multi-step arithmetic, or nested conditional chains (3+ levels of `<#if>`/`<#elseif>`) — these are harder to test and debug in templates and are better placed in the Java layer
+- flag `<#include>` or `<#import>` directives that reference absolute paths or paths outside the current template directory — relative paths are more portable across environments
+- flag `${...}` expressions in HTML-context templates (producing tags, attribute values, or inline scripts) that do not use `?html`, `?js_string`, or auto-escaping — these may introduce XSS if the value contains user input
+- flag changes to files in shared template directories (e.g., `/layouts/`, `/macros/`, `/common/`) or to `<#macro>` definitions that are imported by other templates — note that these changes affect all consumers
+- flag hardcoded URLs (e.g., `https://...`, `http://...`) in templates that point to environment-specific endpoints — these should come from configuration
+- flag newly added user-visible text strings in templates only if the project already uses message bundles (e.g., Spring `MessageSource`, `<@spring.message>`) — ask if internationalization is needed
 
 Gradle build files focus:
 - flag `build.gradle` or `settings.gradle` changes that introduce dependency version conflicts or override managed BOM versions
