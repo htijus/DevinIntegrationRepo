@@ -20,10 +20,15 @@ Prioritize:
 - Gradle build configuration changes that silently break dependencies or the build graph
 
 Java / Spring / Spring Boot focus:
-- flag business operations whose transactional boundaries do not match the intended unit of work
-- flag service logic that may behave differently because of Spring proxying, self-invocation, async execution, event listeners, or lazy loading assumptions
-- flag changes in defaults, properties, bean conditions, or profiles that may silently alter runtime behavior
-- flag orchestration logic where one path was updated but related paths were missed
+- flag methods that perform multiple write operations (repository saves, template updates, external calls) without a shared `@Transactional` boundary — ask if atomicity is intended
+- flag `@Transactional(readOnly = true)` on methods that perform write operations
+- flag self-invocation (`this.method()`) where the target method has `@Transactional`, `@Cacheable`, `@Async`, or `@Retryable` — these annotations are bypassed when not called through the Spring proxy
+- flag `@Async` methods that read `SecurityContext`, MDC, or other `ThreadLocal` values without explicit propagation
+- flag `@TransactionalEventListener` or `@EventListener` methods where execution order or transactional participation is assumed but not explicitly configured
+- flag additions or changes to `@ConditionalOnProperty`, `@ConditionalOnBean`, `@Profile`, or `@Conditional` annotations that may enable or disable beans in specific environments
+- flag removal or renaming of configuration properties that existing deployments may depend on
+- flag changes to default values of properties that are not overridden in all active profiles
+- flag if a method handling one case of a switch, enum dispatch, or strategy pattern was updated but other cases in the same dispatch were not touched — ask if they need the same change
 
 Kafka focus:
 - flag producer/consumer flows that may cause duplicate effects under retries or redelivery
