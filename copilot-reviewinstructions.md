@@ -82,20 +82,14 @@ Testing focus:
 
 Comment only when the concern is concrete, important, and specific to the diff.
 
-Useful comment patterns:
-- "This changes existing behavior because ..."
-- "This transaction may not cover ..."
-- "This path may duplicate effects if Kafka redelivers ..."
-- "This sequence looks non-atomic if DB update succeeds but message publish fails ..."
-- "This consumer appears to rely on ordering that may not be guaranteed ..."
-- "This may behave differently under another Spring profile or bean condition ..."
-- "This BDD test does not appear to verify ..."
-- "This Karate scenario may miss a regression for ..."
-- "This MongoDB query may perform a collection scan because ..."
-- "This multi-document update is not wrapped in a transaction and may leave inconsistent state if ..."
-- "This FreeMarker template will fail at render time if the model is missing ..."
-- "This template renders user input without escaping, which may allow ..."
-- "This Gradle dependency change may conflict with the managed BOM because ..."
-- "This build script change may silently exclude resources because ..."
+Useful comment patterns (one per domain — shows tone and specificity expected):
+- "This changes existing behavior because ..." *(general)*
+- "This transaction may not cover ..." *(Spring / data layer)*
+- "This path may duplicate effects if Kafka redelivers ..." *(Kafka)*
+- "This may behave differently under another Spring profile or bean condition ..." *(configuration)*
+- "This BDD test does not appear to verify ..." *(testing)*
+- "This MongoDB query may perform a collection scan because ..." *(MongoDB)*
+- "This FreeMarker template will fail at render time if the model is missing ..." *(FreeMarker)*
+- "This Gradle dependency change may conflict with the managed BOM because ..." *(Gradle)*
 
 If no high-signal concern exists, do not comment.
