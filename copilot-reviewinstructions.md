@@ -10,12 +10,14 @@ Prioritize:
 
 - business logic mistakes and unintended behavior changes
 - transaction boundary mistakes
-- partial updates across Spring services, Kafka, and Oracle DB operations
+- partial updates across Spring services, Kafka, MongoDB, and Oracle DB operations
 - retry and idempotency risks
 - state transition and workflow inconsistencies
 - backward compatibility risks in APIs, events, DTOs, and persisted values
 - configuration/profile-dependent behavior changes
 - missing or weak regression/integration tests
+- FreeMarker template rendering errors from null or missing model values
+- Gradle build configuration changes that silently break dependencies or the build graph
 
 Java / Spring / Spring Boot focus:
 - flag business operations whose transactional boundaries do not match the intended unit of work
@@ -38,11 +40,44 @@ Oracle / UCP focus:
 - flag unsafe assumptions around batching, retries, or pooled connection reuse when they affect correctness
 - flag changes that may bypass tenant/audit/versioning/soft-delete rules if such patterns are present
 
+MongoDB focus:
+- flag queries missing indexes or performing collection scans on large collections
+- flag read/write concern levels that do not match the consistency requirements of the operation
+- flag multi-document operations that require atomicity but are not wrapped in a transaction
+- flag schema changes (added/removed/renamed fields) that may break existing queries, aggregations, or downstream consumers
+- flag unbounded queries missing projection, limit, or pagination that could return excessive data
+- flag incorrect use of `$set` vs `$unset` vs `$push` that may corrupt document structure
+- flag MongoTemplate or repository methods that silently upsert when only an update is intended, or vice versa
+- flag missing null/empty checks before persisting embedded documents or arrays that could create inconsistent state
+- flag connection pool or timeout configuration changes that may affect performance or availability under load
+- flag aggregation pipelines that perform unbounded `$lookup`, `$unwind`, or `$group` stages without size guards
+
+FreeMarker template focus:
+- flag template changes that may break the rendered output for existing data models or null/missing values
+- flag missing null-safe operators (`!`, `??`, `!''`) that may cause template errors when model values are absent
+- flag `<#assign>` or `<#global>` directives that shadow or overwrite variables from the data model unintentionally
+- flag inline logic or complex expressions in templates that should be computed in the backing Java code instead
+- flag template includes or macros (`<#include>`, `<#macro>`) that reference paths which may not exist in all environments
+- flag unescaped user-supplied values rendered with `${...}` that may introduce XSS or injection risks in HTML output
+- flag changes to shared macros, layouts, or base templates that may silently affect other pages or email templates
+- flag hardcoded text or URLs in templates that should be externalized via message bundles or configuration
+
+Gradle build files focus:
+- flag `build.gradle` or `settings.gradle` changes that introduce dependency version conflicts or override managed BOM versions
+- flag new dependencies added without specifying a version when no dependency management plugin or platform is in place
+- flag `api` vs `implementation` scope misuse — `api` should only be used for intentionally transitive public dependencies
+- flag `resolutionStrategy.force` or `strictly` constraints that may silently downgrade transitive dependencies and cause runtime errors (e.g., `NoSuchMethodError`)
+- flag custom task definitions or `dependsOn` declarations that may introduce cycles in the task graph
+- flag plugin version upgrades that may change default behavior (e.g., Spring Boot plugin, Shadow/Fat JAR plugin)
+- flag changes to `sourceSets`, `processResources`, or `test` configurations that may silently exclude files or break the build
+- flag Gradle wrapper (`gradle-wrapper.properties`) changes that upgrade/downgrade the Gradle version without coordinating with CI and team tooling
+- flag hardcoded file paths, environment-specific values, or credentials in build scripts
+
 Testing focus:
 - flag missing tests for changed business behavior
 - flag BDD-style JUnit tests that describe scenarios well but do not assert the real business outcome strongly enough
 - flag tests that cover only happy paths when the code changes affect edge cases, retries, failures, or duplicate delivery
-- flag missing integration coverage where Spring wiring, transactions, Kafka interaction, Oracle persistence, or configuration behavior is central to correctness
+- flag missing integration coverage where Spring wiring, transactions, Kafka interaction, MongoDB persistence, Oracle persistence, or configuration behavior is central to correctness
 - flag Karate tests that miss contract drift, validation changes, error semantics, or backward compatibility risks
 
 Comment only when the concern is concrete, important, and specific to the diff.
@@ -56,5 +91,11 @@ Useful comment patterns:
 - "This may behave differently under another Spring profile or bean condition ..."
 - "This BDD test does not appear to verify ..."
 - "This Karate scenario may miss a regression for ..."
+- "This MongoDB query may perform a collection scan because ..."
+- "This multi-document update is not wrapped in a transaction and may leave inconsistent state if ..."
+- "This FreeMarker template will fail at render time if the model is missing ..."
+- "This template renders user input without escaping, which may allow ..."
+- "This Gradle dependency change may conflict with the managed BOM because ..."
+- "This build script change may silently exclude resources because ..."
 
 If no high-signal concern exists, do not comment.
