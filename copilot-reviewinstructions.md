@@ -39,11 +39,16 @@ Kafka focus:
 - flag event schema or semantic changes that may break consumers/producers
 
 Oracle / UCP focus:
-- flag data consistency risks, lost updates, duplicate writes, stale reads, or partial commits
-- flag logic that assumes connection, session, or transaction behavior in a fragile way
-- flag persistence changes that may require coordinated migration, backfill, or compatibility handling
-- flag unsafe assumptions around batching, retries, or pooled connection reuse when they affect correctness
-- flag changes that may bypass tenant/audit/versioning/soft-delete rules if such patterns are present
+- flag read-then-write sequences (select followed by update/save) on the same entity without optimistic locking (`@Version`) or explicit pessimistic locking (`SELECT ... FOR UPDATE`) — ask if concurrent modification is possible
+- flag multiple repository save/update calls in a method without a shared `@Transactional` boundary — a failure between saves will leave partial state
+- flag code that stores or caches a JDBC `Connection`, `DataSource`, or `EntityManager` reference in a field or static variable — pooled connections should be obtained per-use and released promptly
+- flag code that calls Oracle session-level operations (`ALTER SESSION`, `DBMS_SESSION`, package-level state) without ensuring the same connection is used for the full operation — UCP may return a different connection on the next call
+- flag additions, removals, or renames of JPA entity fields (`@Column`, `@JoinColumn`) where no corresponding Flyway/Liquibase migration script is included in the same PR — ask if the migration is tracked separately
+- flag changes to column constraints (nullable, unique, length, default) on JPA entities that may conflict with existing data in production
+- flag batch insert/update operations (`JdbcTemplate.batchUpdate`, `saveAll`) that do not handle partial failures — if row 50 of 100 fails, are the first 49 committed or rolled back?
+- flag retry logic around database operations that are not idempotent — a retried `INSERT` without an `ON CONFLICT`/`MERGE` guard may create duplicate rows
+- flag raw SQL queries (native queries, `@Query` with `nativeQuery=true`, `JdbcTemplate`) that bypass the JPA entity layer — these may skip Hibernate filters, `@Where` clauses, or entity listeners that enforce tenant isolation, soft-delete, or audit logging
+- flag direct `DELETE` statements on entities that use `@SQLDelete` or `@Where` annotations for soft-delete — the delete should use the repository method that applies the soft-delete logic
 
 MongoDB focus:
 - flag queries missing indexes or performing collection scans on large collections
