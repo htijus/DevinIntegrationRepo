@@ -84,11 +84,12 @@ Gradle build files focus:
 - flag hardcoded file paths, environment-specific values, or credentials in build scripts
 
 Testing focus:
-- flag missing tests for changed business behavior
-- flag BDD-style JUnit tests that describe scenarios well but do not assert the real business outcome strongly enough
-- flag tests that cover only happy paths when the code changes affect edge cases, retries, failures, or duplicate delivery
-- flag missing integration coverage where Spring wiring, transactions, Kafka interaction, MongoDB persistence, Oracle persistence, or configuration behavior is central to correctness
-- flag Karate tests that miss contract drift, validation changes, error semantics, or backward compatibility risks
+- flag changed or newly added public methods in service/domain classes that have no corresponding test method in the PR — ask if existing tests already cover the change
+- flag test methods whose name describes a specific business scenario (e.g., `shouldCalculateDiscount`, `shouldRejectDuplicateOrder`) but whose assertions only check generic outcomes like `assertNotNull`, `assertTrue(result)`, or `verify(mock).call()` without asserting the specific business value (e.g., the discount amount, the rejection reason, the resulting state)
+- flag if the production code diff adds or modifies exception handling, retry logic, fallback behavior, or conditional error paths, but the test diff contains no corresponding test for the failure/error scenario
+- flag if the production code diff introduces or modifies `@Transactional` boundaries, Kafka consumer/producer wiring, `MongoTemplate`/repository queries, `JdbcTemplate`/native queries, or `@ConditionalOnProperty`/`@Profile` logic, but the test diff only contains unit tests with mocked dependencies — ask if an integration test (e.g., `@SpringBootTest`, `@DataJpaTest`, `@EmbeddedKafka`) is needed
+- flag if the production code diff changes REST controller response fields, status codes, error response structure, or validation rules, but Karate `.feature` files in the PR do not update the corresponding match/assert statements to reflect the change
+- flag Karate scenarios that assert only status 200 without validating the response body schema or key field values
 
 Comment only when the concern is concrete, important, and specific to the diff.
 
