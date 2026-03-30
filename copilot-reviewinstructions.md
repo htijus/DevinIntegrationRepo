@@ -6,18 +6,16 @@ Do not comment on formatting, style, naming, minor cleanup, generic lint finding
 
 Focus only on high-signal review comments about business logic, runtime behavior, integration risk, and test effectiveness in this Java/Spring application.
 
-Prioritize:
+Prioritize (highest to lowest):
 
-- business logic mistakes and unintended behavior changes
-- transaction boundary mistakes
-- partial updates across Spring services, Kafka, MongoDB, and Oracle DB operations
-- retry and idempotency risks
-- state transition and workflow inconsistencies
-- backward compatibility risks in APIs, events, DTOs, and persisted values
-- configuration/profile-dependent behavior changes
-- missing or weak regression/integration tests
-- FreeMarker template rendering errors from null or missing model values
-- Gradle build configuration changes that silently break dependencies or the build graph
+- methods that perform multiple writes or external calls without a shared transaction — partial failures leave inconsistent state
+- code paths where a DB update and a Kafka publish/consume happen in a non-atomic sequence — one may succeed while the other fails
+- retry or redelivery flows that lack idempotency guards — duplicates cause real business side effects
+- changes to `@Transactional` boundaries, `@ConditionalOnProperty`, `@Profile`, or bean conditions that silently alter which code runs in which environment
+- API, event, or DTO field changes that break existing consumers or persisted data without backward compatibility handling
+- `${...}` expressions in FreeMarker templates without null-safe operators — these cause runtime rendering failures
+- Gradle dependency version overrides, `resolutionStrategy.force`, or plugin upgrades that may cause `NoSuchMethodError` or silent build breakage
+- production code changes with no corresponding test in the diff — ask if existing tests cover it
 
 Java / Spring / Spring Boot focus:
 - flag methods that perform multiple write operations (repository saves, template updates, external calls) without a shared `@Transactional` boundary — ask if atomicity is intended
