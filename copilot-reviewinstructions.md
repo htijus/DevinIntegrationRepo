@@ -6,18 +6,16 @@ Do not comment on formatting, style, naming, minor cleanup, generic lint finding
 
 Focus only on high-signal review comments about business logic, runtime behavior, integration risk, and test effectiveness in this Java/Spring application.
 
-Prioritize:
+Prioritize (highest to lowest):
 
-- business logic mistakes and unintended behavior changes
-- transaction boundary mistakes
-- partial updates across Spring services, Kafka, MongoDB, and Oracle DB operations
-- retry and idempotency risks
-- state transition and workflow inconsistencies
-- backward compatibility risks in APIs, events, DTOs, and persisted values
-- configuration/profile-dependent behavior changes
-- missing or weak regression/integration tests
-- FreeMarker template rendering errors from null or missing model values
-- Gradle build configuration changes that silently break dependencies or the build graph
+- methods that perform multiple writes or external calls without a shared transaction — partial failures leave inconsistent state
+- code paths where a DB update and a Kafka publish/consume happen in a non-atomic sequence — one may succeed while the other fails
+- retry or redelivery flows that lack idempotency guards — duplicates cause real business side effects
+- changes to `@Transactional` boundaries, `@ConditionalOnProperty`, `@Profile`, or bean conditions that silently alter which code runs in which environment
+- API, event, or DTO field changes that break existing consumers or persisted data without backward compatibility handling
+- `${...}` expressions in FreeMarker templates without null-safe operators — these cause runtime rendering failures
+- Gradle dependency version overrides, `resolutionStrategy.force`, or plugin upgrades that may cause `NoSuchMethodError` or silent build breakage
+- production code changes with no corresponding test in the diff — ask if existing tests cover it
 
 Java / Spring / Spring Boot focus:
 - flag methods that perform multiple write operations (repository saves, template updates, external calls) without a shared `@Transactional` boundary — ask if atomicity is intended
@@ -84,11 +82,12 @@ Gradle build files focus:
 - flag hardcoded file paths, environment-specific values, or credentials in build scripts
 
 Testing focus:
-- flag missing tests for changed business behavior
-- flag BDD-style JUnit tests that describe scenarios well but do not assert the real business outcome strongly enough
-- flag tests that cover only happy paths when the code changes affect edge cases, retries, failures, or duplicate delivery
-- flag missing integration coverage where Spring wiring, transactions, Kafka interaction, MongoDB persistence, Oracle persistence, or configuration behavior is central to correctness
-- flag Karate tests that miss contract drift, validation changes, error semantics, or backward compatibility risks
+- flag changed or newly added public methods in service/domain classes that have no corresponding test method in the PR — ask if existing tests already cover the change
+- flag test methods whose name describes a specific business scenario (e.g., `shouldCalculateDiscount`, `shouldRejectDuplicateOrder`) but whose assertions only check generic outcomes like `assertNotNull`, `assertTrue(result)`, or `verify(mock).call()` without asserting the specific business value (e.g., the discount amount, the rejection reason, the resulting state)
+- flag if the production code diff adds or modifies exception handling, retry logic, fallback behavior, or conditional error paths, but the test diff contains no corresponding test for the failure/error scenario
+- flag if the production code diff introduces or modifies `@Transactional` boundaries, Kafka consumer/producer wiring, `MongoTemplate`/repository queries, `JdbcTemplate`/native queries, or `@ConditionalOnProperty`/`@Profile` logic, but the test diff only contains unit tests with mocked dependencies — ask if an integration test (e.g., `@SpringBootTest`, `@DataJpaTest`, `@EmbeddedKafka`) is needed
+- flag if the production code diff changes REST controller response fields, status codes, error response structure, or validation rules, but Karate `.feature` files in the PR do not update the corresponding match/assert statements to reflect the change
+- flag Karate scenarios that assert only status 200 without validating the response body schema or key field values
 
 Comment only when the concern is concrete, important, and specific to the diff.
 
